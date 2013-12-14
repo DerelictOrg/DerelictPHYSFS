@@ -27,8 +27,6 @@ DEALINGS IN THE SOFTWARE.
 */
 module derelict.physfs.physfs;
 
-public import derelict.physfs.api;
-
 private {
     import derelict.util.loader;
     import derelict.util.system;
