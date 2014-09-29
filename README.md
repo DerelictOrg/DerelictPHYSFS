@@ -1,7 +1,7 @@
 DerelictPHYSFS
 ==============
 
-A dynamic binding to the [PhysicsFS][1] library for the D Programming Language.
+A dynamic binding to version 2.03 of the [PhysicsFS][1] library for the D Programming Language.
 
 For information on how to build DerelictPHYSFS and link it with your programs, please see the post [Using Derelict][2] at The One With D.
 
