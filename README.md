@@ -3,9 +3,7 @@ DerelictPHYSFS
 
 A dynamic binding to version 2.03 of the [PhysicsFS][1] library for the D Programming Language.
 
-For information on how to build DerelictPHYSFS and link it with your programs, please see the post [Using Derelict][2] at The One With D.
-
-For information on how to load the PhysicsFS library via DerelictPHYSFS, see the page [DerelictUtil for Users][3] at the DerelictUtil Wiki. In the meantime, here's some sample code.
+Please see the pages [Building and Linking Derelict][2] and [Using Derelict][3], in the Derelict documentation, for information on how to build DerelictLua and load Lua at run time. In the meantime, here's some sample code.
 
 ```D
 import derelict.physfs.physfs;
@@ -13,11 +11,12 @@ import derelict.physfs.physfs;
 void main() {
     // Load the PhysicsFS library.
     DerelictPHYSFS.load();
-    
+
     // Now PhysicsFS functions can be called.
     ...
 }
-``` 
+```
+
 [1]: http://icculus.org/physfs/
-[2]: http://dblog.aldacron.net/derelict-help/using-derelict/
-[3]: https://github.com/DerelictOrg/DerelictUtil/wiki/DerelictUtil-for-Users
+[2]: http://derelictorg.github.io/compiling.html
+[3]: http://derelictorg.github.io/using.html
