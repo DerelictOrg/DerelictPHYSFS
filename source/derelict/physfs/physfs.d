@@ -4,7 +4,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
-this license ( the "Software" ) to use, reproduce, display, distribute,
+this license (the "Software") to use, reproduce, display, distribute,
 execute, and transmit the Software, and to prepare derivative works of the
 Software, and to permit third-parties to whom the Software is furnished to
 do so, all subject to the following:
@@ -31,16 +31,17 @@ private {
     import derelict.util.loader;
     import derelict.util.system;
 
-    static if( Derelict_OS_Windows )
+    static if(Derelict_OS_Windows)
         enum libNames = "libphysfs.dll, physfs.dll";
-    else static if( Derelict_OS_Mac )
+    else static if(Derelict_OS_Mac)
         enum libNames = "libphysfs.dylib, /usr/local/lib/libphysfs.dylib";
-    else static if( Derelict_OS_Posix )
+    else static if(Derelict_OS_Posix)
         enum libNames = "libphysfs.so,/usr/local/lib/libphysfs.so";
     else
-        static assert( 0, "Need to implement PhysFS libNames for this operating system." );
+        static assert(0, "Need to implement PhysFS libNames for this operating system.");
 }
 
+// 2.0 Types
 alias PHYSFS_uint8 = ubyte;
 alias PHYSFS_sint8 = byte;
 alias PHYSFS_uint16 = ushort;
@@ -55,10 +56,11 @@ struct PHYSFS_File {
 }
 
 struct PHYSFS_ArchiveInfo {
-    const( char )* extension;
-    const( char )* description;
-    const( char )* author;
-    const( char )* url;
+    const(char)* extension;
+    const(char)* description;
+    const(char)* author;
+    const(char)* url;
+    int supportSymlinks;
 }
 
 struct PHYSFS_Version {
@@ -68,10 +70,10 @@ struct PHYSFS_Version {
 }
 
 enum ubyte PHYSFS_VERSION_MAJOR = 2;
-enum ubyte PHYSFS_VERSION_MINOR = 0;
-enum ubyte PHYSFS_VERSION_PATCH = 3;
+enum ubyte PHYSFS_VERSION_MINOR = 1;
+enum ubyte PHYSFS_VERSION_PATCH = 0;
 
-void PHYSFS_VERSION( ref PHYSFS_Version* x ) {
+void PHYSFS_VERSION(ref PHYSFS_Version* x) {
     x.major = PHYSFS_VERSION_MAJOR;
     x.minor = PHYSFS_VERSION_MINOR;
     x.patch = PHYSFS_VERSION_PATCH;
@@ -80,103 +82,204 @@ void PHYSFS_VERSION( ref PHYSFS_Version* x ) {
 struct PHYSFS_Allocator {
     int function() Init;
     void function() Deinit;
-    void* function( PHYSFS_uint64 ) Malloc;
-    void* function( void*, PHYSFS_uint64 ) Realloc;
-    void function( void* ) Free;
+    void* function(PHYSFS_uint64) Malloc;
+    void* function(void*, PHYSFS_uint64) Realloc;
+    void function(void*) Free;
 }
 
-extern( C ) nothrow {
-    alias PHYSFS_StringCallback = void function( void*, const( char )* );
-    alias PHYSFS_EnumFilesCallback = void function( void*, const( char )*, const( char )* );
+extern(C) nothrow {
+    alias PHYSFS_StringCallback = void function(void*, const(char)*);
+    alias PHYSFS_EnumFilesCallback = void function(void*, const(char)*, const(char)*);
 }
 
-extern( C ) nothrow {
-    alias da_PHYSFS_getLinkedVersion = void function( PHYSFS_Version* );
-    alias da_PHYSFS_init = int function( const( char )* );
+// 2.1 Types
+alias PHYSFS_FileType = int;
+enum {
+    PHYSFS_FILETYPE_REGULAR,
+    PHYSFS_FILETYPE_DIRECTORY,
+    PHYSFS_FILETYPE_SYMLINK,
+    PHYSFS_FILETYPE_OTHER
+}
+
+struct PHYSFS_Stat {
+    PHYSFS_sint64 filesize;
+    PHYSFS_sint64 modtime;
+    PHYSFS_sint64 createtime;
+    PHYSFS_sint64 accesstime;
+    PHYSFS_FileType filetype;
+}
+
+struct PHYSFS_Io {
+    PHYSFS_uint32 version_;
+    void* opaque;
+    extern(C) nothrow {
+        PHYSFS_sint64 function(PHYSFS_Io*, void*, PHYSFS_uint64) read;
+        PHYSFS_sint64 function(PHYSFS_Io*, const(void)*, PHYSFS_uint64) write;
+        PHYSFS_sint64 function(PHYSFS_Io*) tell;
+        PHYSFS_sint64 function(PHYSFS_Io*) length;
+        PHYSFS_Io* function(PHYSFS_Io*) duplicate;
+        int function(PHYSFS_Io*) flush;
+        void function(PHYSFS_Io*) destroy;
+    }
+}
+
+// This is not an explicit type in PHYSFS, just for convenience
+// here to get the nothrow attribute only.
+extern(C) nothrow alias UnmountCallback = void function(void*);
+
+alias PHYSFS_ErrorCode = int;
+enum {
+    PHYSFS_ERR_OK,
+    PHYSFS_ERR_OTHER_ERROR,
+    PHYSFS_ERR_OUT_OF_MEMORY,
+    PHYSFS_ERR_NOT_INITIALIZED,
+    PHYSFS_ERR_IS_INITIALIZED,
+    PHYSFS_ERR_ARGV0_IS_NULL,
+    PHYSFS_ERR_UNSUPPORTED,
+    PHYSFS_ERR_PAST_EOF,
+    PHYSFS_ERR_FILES_STILL_OPEN,
+    PHYSFS_ERR_INVALID_ARGUMENT,
+    PHYSFS_ERR_NOT_MOUNTED,
+    PHYSFS_ERR_NOT_FOUND,
+    PHYSFS_ERR_SYMLINK_FORBIDDEN,
+    PHYSFS_ERR_NO_WRITE_DIR,
+    PHYSFS_ERR_OPEN_FOR_READING,
+    PHYSFS_ERR_OPEN_FOR_WRITING,
+    PHYSFS_ERR_NOT_A_FILE,
+    PHYSFS_ERR_READ_ONLY,
+    PHYSFS_ERR_CORRUPT,
+    PHYSFS_ERR_SYMLINK_LOOP,
+    PHYSFS_ERR_IO,
+    PHYSFS_ERR_PERMISSION,
+    PHYSFS_ERR_NO_SPACE,
+    PHYSFS_ERR_BAD_FILENAME,
+    PHYSFS_ERR_BUSY,
+    PHYSFS_ERR_DIR_NOT_EMPTY,
+    PHYSFS_ERR_OS_ERROR,
+    PHYSFS_ERR_DUPLICATE
+}
+
+struct PHYSFS_Archiver {
+    PHYSFS_uint32 version_;
+    PHYSFS_ArchiveInfo info;
+    extern(C) nothrow {
+        void* function(PHYSFS_Io*, const(char)*, int) openArchive;
+        void function(void*, const(char)*, PHYSFS_EnumFilesCallback, const(char)*, void*) enumerateFiles;
+        PHYSFS_Io* function(void*, const(char)*) openRead;
+        PHYSFS_Io* function(void*, const(char)*) openWrite;
+        PHYSFS_Io* function(void*, const(char)*) openAppend;
+        int function(void*, const(char)*) remove;
+        int function(void*, const(char)*) mkdir;
+        int function(void*, const(char)*, PHYSFS_Stat*) stat;
+        void function(void*) closeArchive;
+    }
+}
+
+extern(C) @nogc nothrow {
+    // 2.0 API
+    alias da_PHYSFS_getLinkedVersion = void function(PHYSFS_Version*);
+    alias da_PHYSFS_init = int function(const(char)*);
     alias da_PHYSFS_deinit = int function();
-    alias da_PHYSFS_supportedArchiveTypes = const( PHYSFS_ArchiveInfo* )*;
-    alias da_PHYSFS_freeList = void function( void* );
-    alias da_PHYSFS_getLastError = const( char )* function();
-    alias da_PHYSFS_getDirSeparator = const( char )* function();
-    alias da_PHYSFS_permitSymbolicLinks = void function( int );
+    alias da_PHYSFS_supportedArchiveTypes = const(PHYSFS_ArchiveInfo*)* function();
+    alias da_PHYSFS_freeList = void function(void*);
+    alias da_PHYSFS_getLastError = const(char)* function();
+    alias da_PHYSFS_getDirSeparator = const(char)* function();
+    alias da_PHYSFS_permitSymbolicLinks = void function(int);
     alias da_PHYSFS_getCdRomDirs = char** function();
-    alias da_PHYSFS_getBaseDir = const( char )* function();
-    alias da_PHYSFS_getUserDir = const( char )* function();
-    alias da_PHYSFS_getWriteDir = const( char )* function();
-    alias da_PHYSFS_setWriteDir = int function( const( char )* );
-    alias da_PHYSFS_addToSearchPath = int function( const( char )*, int );
-    alias da_PHYSFS_removeFromSearchPath = int function( const( char )* );
+    alias da_PHYSFS_getBaseDir = const(char)* function();
+    alias da_PHYSFS_getUserDir = const(char)* function();
+    alias da_PHYSFS_getWriteDir = const(char)* function();
+    alias da_PHYSFS_setWriteDir = int function(const(char)*);
+    alias da_PHYSFS_addToSearchPath = int function(const(char)*, int);
+    alias da_PHYSFS_removeFromSearchPath = int function(const(char)*);
     alias da_PHYSFS_getSearchPath = char** function();
-    alias da_PHYSFS_setSaneConfig = int function( const( char )*, const( char )*, const( char )*, int, int );
-    alias da_PHYSFS_mkdir = int function( const( char )* );
-    alias da_PHYSFS_delete = int function( const( char )* );
-    alias da_PHYSFS_getRealDir = const( char )* function( const(char)* );
-    alias da_PHYSFS_enumerateFiles = char** function( const( char )* );
-    alias da_PHYSFS_exists = int function( const( char )* );
-    alias da_PHYSFS_isDirectory = int function( const( char )* );
-    alias da_PHYSFS_isSymbolicLink = int function( const( char )* );
-    alias da_PHYSFS_getLastModTime = PHYSFS_sint64 function( const( char )* );
-    alias da_PHYSFS_openWrite = PHYSFS_File* function( const( char )* );
-    alias da_PHYSFS_openAppend = PHYSFS_File* function( const( char )* );
-    alias da_PHYSFS_openRead = PHYSFS_File* function( const( char )* );
-    alias da_PHYSFS_close = int function( PHYSFS_File* );
-    alias da_PHYSFS_read = PHYSFS_sint64 function( PHYSFS_File*, void*, PHYSFS_uint32, PHYSFS_uint32 );
-    alias da_PHYSFS_write = PHYSFS_sint64 function( PHYSFS_File*, const( void )*, PHYSFS_uint32, PHYSFS_uint32 );
-    alias da_PHYSFS_eof = int function( PHYSFS_File* );
-    alias da_PHYSFS_tell = PHYSFS_sint64 function( PHYSFS_File* );
-    alias da_PHYSFS_seek = int function( PHYSFS_File*, PHYSFS_uint64 );
-    alias da_PHYSFS_fileLength = PHYSFS_sint64 function( PHYSFS_File* );
-    alias da_PHYSFS_setBuffer = int function( PHYSFS_File*, PHYSFS_uint64 );
-    alias da_PHYSFS_flush = int function( PHYSFS_File* );
-    alias da_PHYSFS_swapSLE16 = PHYSFS_sint16 function( PHYSFS_sint16 );
-    alias da_PHYSFS_swapULE16 = PHYSFS_uint16 function( PHYSFS_uint16 );
-    alias da_PHYSFS_swapSLE32 = PHYSFS_sint32 function( PHYSFS_sint32 );
-    alias da_PHYSFS_swapULE32 = PHYSFS_uint32 function( PHYSFS_uint32 );
-    alias da_PHYSFS_swapSLE64 = PHYSFS_sint64 function( PHYSFS_sint64 );
-    alias da_PHYSFS_swapULE64 = PHYSFS_uint64 function( PHYSFS_uint64 );
-    alias da_PHYSFS_swapSBE16 = PHYSFS_sint16 function( PHYSFS_sint16 );
-    alias da_PHYSFS_swapUBE16 = PHYSFS_uint16 function( PHYSFS_uint16 );
-    alias da_PHYSFS_swapSBE32 = PHYSFS_sint32 function( PHYSFS_sint32 );
-    alias da_PHYSFS_swapUBE32 = PHYSFS_uint32 function( PHYSFS_uint32 );
-    alias da_PHYSFS_swapSBE64 = PHYSFS_sint64 function( PHYSFS_sint64 );
-    alias da_PHYSFS_swapUBE64 = PHYSFS_sint64 function( PHYSFS_uint64 );
-    alias da_PHYSFS_readSLE16 = int function( PHYSFS_File*, PHYSFS_sint16* );
-    alias da_PHYSFS_readULE16 = int function( PHYSFS_File*, PHYSFS_uint16* );
-    alias da_PHYSFS_readSLE32 = int function( PHYSFS_File*, PHYSFS_sint32* );
-    alias da_PHYSFS_readULE32 = int function( PHYSFS_File*, PHYSFS_uint32* );
-    alias da_PHYSFS_readSLE64 = int function( PHYSFS_File*, PHYSFS_sint64* );
-    alias da_PHYSFS_readULE64 = int function( PHYSFS_File*, PHYSFS_uint64* );
-    alias da_PHYSFS_readSBE16 = int function( PHYSFS_File*, PHYSFS_sint16* );
-    alias da_PHYSFS_readUBE16 = int function( PHYSFS_File*, PHYSFS_uint16* );
-    alias da_PHYSFS_readSBE32 = int function( PHYSFS_File*, PHYSFS_sint32* );
-    alias da_PHYSFS_readUBE32 = int function( PHYSFS_File*, PHYSFS_uint32* );
-    alias da_PHYSFS_readSBE64 = int function( PHYSFS_File*, PHYSFS_sint64* );
-    alias da_PHYSFS_readUBE64 = int function( PHYSFS_File*, PHYSFS_uint64* );
-    alias da_PHYSFS_writeSLE16 = int function( PHYSFS_File*, PHYSFS_sint16 );
-    alias da_PHYSFS_writeULE16 = int function( PHYSFS_File*, PHYSFS_uint16 );
-    alias da_PHYSFS_writeSLE32 = int function( PHYSFS_File*, PHYSFS_sint32 );
-    alias da_PHYSFS_writeULE32 = int function( PHYSFS_File*, PHYSFS_uint32 );
-    alias da_PHYSFS_writeSLE64 = int function( PHYSFS_File*, PHYSFS_sint64 );
-    alias da_PHYSFS_writeULE64 = int function( PHYSFS_File*, PHYSFS_uint64 );
-    alias da_PHYSFS_writeSBE16 = int function( PHYSFS_File*, PHYSFS_sint16 );
-    alias da_PHYSFS_writeUBE16 = int function( PHYSFS_File*, PHYSFS_uint16 );
-    alias da_PHYSFS_writeSBE32 = int function( PHYSFS_File*, PHYSFS_sint32 );
-    alias da_PHYSFS_writeUBE32 = int function( PHYSFS_File*, PHYSFS_uint32 );
-    alias da_PHYSFS_writeSBE64 = int function( PHYSFS_File*, PHYSFS_sint64 );
-    alias da_PHYSFS_writeUBE64 = int function( PHYSFS_File*, PHYSFS_uint64 );
+    alias da_PHYSFS_setSaneConfig = int function(const(char)*, const(char)*, const(char)*, int, int);
+    alias da_PHYSFS_mkdir = int function(const(char)*);
+    alias da_PHYSFS_delete = int function(const(char)*);
+    alias da_PHYSFS_getRealDir = const(char)* function(const(char)*);
+    alias da_PHYSFS_enumerateFiles = char** function(const(char)*);
+    alias da_PHYSFS_exists = int function(const(char)*);
+    alias da_PHYSFS_isDirectory = int function(const(char)*);
+    alias da_PHYSFS_isSymbolicLink = int function(const(char)*);
+    alias da_PHYSFS_getLastModTime = PHYSFS_sint64 function(const(char)*);
+    alias da_PHYSFS_openWrite = PHYSFS_File* function(const(char)*);
+    alias da_PHYSFS_openAppend = PHYSFS_File* function(const(char)*);
+    alias da_PHYSFS_openRead = PHYSFS_File* function(const(char)*);
+    alias da_PHYSFS_close = int function(PHYSFS_File*);
+    alias da_PHYSFS_read = PHYSFS_sint64 function(PHYSFS_File*, void*, PHYSFS_uint32, PHYSFS_uint32);
+    alias da_PHYSFS_write = PHYSFS_sint64 function(PHYSFS_File*, const(void)*, PHYSFS_uint32, PHYSFS_uint32);
+    alias da_PHYSFS_eof = int function(PHYSFS_File*);
+    alias da_PHYSFS_tell = PHYSFS_sint64 function(PHYSFS_File*);
+    alias da_PHYSFS_seek = int function(PHYSFS_File*, PHYSFS_uint64);
+    alias da_PHYSFS_fileLength = PHYSFS_sint64 function(PHYSFS_File*);
+    alias da_PHYSFS_setBuffer = int function(PHYSFS_File*, PHYSFS_uint64);
+    alias da_PHYSFS_flush = int function(PHYSFS_File*);
+    alias da_PHYSFS_swapSLE16 = PHYSFS_sint16 function(PHYSFS_sint16);
+    alias da_PHYSFS_swapULE16 = PHYSFS_uint16 function(PHYSFS_uint16);
+    alias da_PHYSFS_swapSLE32 = PHYSFS_sint32 function(PHYSFS_sint32);
+    alias da_PHYSFS_swapULE32 = PHYSFS_uint32 function(PHYSFS_uint32);
+    alias da_PHYSFS_swapSLE64 = PHYSFS_sint64 function(PHYSFS_sint64);
+    alias da_PHYSFS_swapULE64 = PHYSFS_uint64 function(PHYSFS_uint64);
+    alias da_PHYSFS_swapSBE16 = PHYSFS_sint16 function(PHYSFS_sint16);
+    alias da_PHYSFS_swapUBE16 = PHYSFS_uint16 function(PHYSFS_uint16);
+    alias da_PHYSFS_swapSBE32 = PHYSFS_sint32 function(PHYSFS_sint32);
+    alias da_PHYSFS_swapUBE32 = PHYSFS_uint32 function(PHYSFS_uint32);
+    alias da_PHYSFS_swapSBE64 = PHYSFS_sint64 function(PHYSFS_sint64);
+    alias da_PHYSFS_swapUBE64 = PHYSFS_sint64 function(PHYSFS_uint64);
+    alias da_PHYSFS_readSLE16 = int function(PHYSFS_File*, PHYSFS_sint16*);
+    alias da_PHYSFS_readULE16 = int function(PHYSFS_File*, PHYSFS_uint16*);
+    alias da_PHYSFS_readSLE32 = int function(PHYSFS_File*, PHYSFS_sint32*);
+    alias da_PHYSFS_readULE32 = int function(PHYSFS_File*, PHYSFS_uint32*);
+    alias da_PHYSFS_readSLE64 = int function(PHYSFS_File*, PHYSFS_sint64*);
+    alias da_PHYSFS_readULE64 = int function(PHYSFS_File*, PHYSFS_uint64*);
+    alias da_PHYSFS_readSBE16 = int function(PHYSFS_File*, PHYSFS_sint16*);
+    alias da_PHYSFS_readUBE16 = int function(PHYSFS_File*, PHYSFS_uint16*);
+    alias da_PHYSFS_readSBE32 = int function(PHYSFS_File*, PHYSFS_sint32*);
+    alias da_PHYSFS_readUBE32 = int function(PHYSFS_File*, PHYSFS_uint32*);
+    alias da_PHYSFS_readSBE64 = int function(PHYSFS_File*, PHYSFS_sint64*);
+    alias da_PHYSFS_readUBE64 = int function(PHYSFS_File*, PHYSFS_uint64*);
+    alias da_PHYSFS_writeSLE16 = int function(PHYSFS_File*, PHYSFS_sint16);
+    alias da_PHYSFS_writeULE16 = int function(PHYSFS_File*, PHYSFS_uint16);
+    alias da_PHYSFS_writeSLE32 = int function(PHYSFS_File*, PHYSFS_sint32);
+    alias da_PHYSFS_writeULE32 = int function(PHYSFS_File*, PHYSFS_uint32);
+    alias da_PHYSFS_writeSLE64 = int function(PHYSFS_File*, PHYSFS_sint64);
+    alias da_PHYSFS_writeULE64 = int function(PHYSFS_File*, PHYSFS_uint64);
+    alias da_PHYSFS_writeSBE16 = int function(PHYSFS_File*, PHYSFS_sint16);
+    alias da_PHYSFS_writeUBE16 = int function(PHYSFS_File*, PHYSFS_uint16);
+    alias da_PHYSFS_writeSBE32 = int function(PHYSFS_File*, PHYSFS_sint32);
+    alias da_PHYSFS_writeUBE32 = int function(PHYSFS_File*, PHYSFS_uint32);
+    alias da_PHYSFS_writeSBE64 = int function(PHYSFS_File*, PHYSFS_sint64);
+    alias da_PHYSFS_writeUBE64 = int function(PHYSFS_File*, PHYSFS_uint64);
     alias da_PHYSFS_isInit = int function();
     alias da_PHYSFS_symbolicLinksPermitted = int function();
-    alias da_PHYSFS_setAllocator = int function( const( PHYSFS_Allocator )* );
-    alias da_PHYSFS_mount = int function( const( char )*, const( char )*, int );
-    alias da_PHYSFS_getMountPoint = const( char )* function( const( char )* );
-    alias da_PHYSFS_getCdRomDirsCallback = void function( PHYSFS_StringCallback, void* );
-    alias da_PHYSFS_getSearchPathCallback = void function( PHYSFS_StringCallback, void* );
-    alias da_PHYSFS_enumerateFilesCallback = void function( const( char )*, PHYSFS_EnumFilesCallback, void* );
-    alias da_PHYSFS_utf8FromUcs4 = void function( const( PHYSFS_uint32 )*, char*, PHYSFS_uint64 );
-    alias da_PHYSFS_utf8ToUcs4 = void function( const( char )*, PHYSFS_uint32*, PHYSFS_uint64 );
-    alias da_PHYSFS_utf8FromUcs2 = void function( const( PHYSFS_uint16 )*, char*, PHYSFS_uint64 );
-    alias da_PHYSFS_utf8ToUcs2 = void function( const( char )*, PHYSFS_uint16*, PHYSFS_uint64 );
-    alias da_PHYSFS_utf8FromLatin1 = void function( const( char )*, char*, PHYSFS_uint64 );
+    alias da_PHYSFS_setAllocator = int function(const(PHYSFS_Allocator)*);
+    alias da_PHYSFS_mount = int function(const(char)*, const(char)*, int);
+    alias da_PHYSFS_getMountPoint = const(char)* function(const(char)*);
+    alias da_PHYSFS_getCdRomDirsCallback = void function(PHYSFS_StringCallback, void*);
+    alias da_PHYSFS_getSearchPathCallback = void function(PHYSFS_StringCallback, void*);
+    alias da_PHYSFS_enumerateFilesCallback = void function(const(char)*, PHYSFS_EnumFilesCallback, void*);
+    alias da_PHYSFS_utf8FromUcs4 = void function(const(PHYSFS_uint32)*, char*, PHYSFS_uint64);
+    alias da_PHYSFS_utf8ToUcs4 = void function(const(char)*, PHYSFS_uint32*, PHYSFS_uint64);
+    alias da_PHYSFS_utf8FromUcs2 = void function(const(PHYSFS_uint16)*, char*, PHYSFS_uint64);
+    alias da_PHYSFS_utf8ToUcs2 = void function(const(char)*, PHYSFS_uint16*, PHYSFS_uint64);
+    alias da_PHYSFS_utf8FromLatin1 = void function(const(char)*, char*, PHYSFS_uint64);
+    // 2.1 API
+    alias da_PHYSFS_unmount = int function(const(char)*);
+    alias da_PHYSFS_getAllocator = const(PHYSFS_Allocator)* function();
+    alias da_PHYSFS_stat = int function(const(char)*, PHYSFS_Stat*);
+    alias da_PHYSFS_utf8FromUtf16 = void function(const(PHYSFS_uint16)*, char*, PHYSFS_uint64);
+    alias da_PHYSFS_utf8ToUtf16 = void function(const(char)*, PHYSFS_uint16*, PHYSFS_uint64);
+    alias da_PHYSFS_readBytes = PHYSFS_sint64 function(PHYSFS_File*, void*, PHYSFS_uint64);
+    alias da_PHYSFS_writeBytes = PHYSFS_sint64 function(PHYSFS_File*, const(void)*, PHYSFS_uint64);
+    alias da_PHYSFS_mountIo = int function(PHYSFS_Io*, const(char)*, const(char)*, int);
+    alias da_PHYSFS_mountMemory = int function(const(void)*, PHYSFS_uint64, UnmountCallback, const(char)*, int);
+    alias da_PHYSFS_mountHandle = int function(PHYSFS_File*, const(char)*, const(char)*, int);
+    alias da_PHYSFS_getLastErrorCode = PHYSFS_ErrorCode function();
+    alias da_PHYSFS_getErrorByCode = const(char)* function(PHYSFS_ErrorCode);
+    alias da_PHYSFS_setErrorCode = void function(PHYSFS_ErrorCode);
+    alias da_PHYSFS_getPrefDir = const(char)* function(const(char)*, const(char)*);
+    alias da_PHYSFS_registerArchiver = int function(const(PHYSFS_Archiver)*);
+    alias da_PHYSFS_deregisterArchiver = int function(const(char)*);
 }
 
 __gshared {
@@ -266,100 +369,134 @@ __gshared {
     da_PHYSFS_utf8FromUcs2 PHYSFS_utf8FromUcs2;
     da_PHYSFS_utf8ToUcs2 PHYSFS_utf8ToUcs2;
     da_PHYSFS_utf8FromLatin1 PHYSFS_utf8FromLatin1;
+
+    da_PHYSFS_unmount PHYSFS_unmount;
+    da_PHYSFS_getAllocator PHYSFS_getAllocator;
+    da_PHYSFS_stat PHYSFS_stat;
+    da_PHYSFS_utf8FromUtf16 PHYSFS_utf8FromUtf16;
+    da_PHYSFS_utf8ToUtf16 PHYSFS_utf8ToUtf16;
+    da_PHYSFS_readBytes PHYSFS_readBytes;
+    da_PHYSFS_writeBytes PHYSFS_writeBytes;
+    da_PHYSFS_mountIo PHYSFS_mountIo;
+    da_PHYSFS_mountMemory PHYSFS_mountMemory;
+    da_PHYSFS_mountHandle PHYSFS_mountHandle;
+    da_PHYSFS_getLastErrorCode PHYSFS_getLastErrorCode;
+    da_PHYSFS_getErrorByCode PHYSFS_getErrorByCode;
+    da_PHYSFS_setErrorCode PHYSFS_setErrorCode;
+    da_PHYSFS_getPrefDir PHYSFS_getPrefDir;
+    da_PHYSFS_registerArchiver PHYSFS_registerArchiver;
+    da_PHYSFS_deregisterArchiver PHYSFS_deregisterArchiver;
 }
 
 class DerelictPHYSFSLoader : SharedLibLoader {
     public this() {
-        super(  libNames  );
+        super( libNames );
     }
 
     protected override void loadSymbols() {
-        bindFunc( cast( void** )&PHYSFS_getLinkedVersion, "PHYSFS_getLinkedVersion" );
-        bindFunc( cast( void** )&PHYSFS_init, "PHYSFS_init" );
-        bindFunc( cast( void** )&PHYSFS_deinit, "PHYSFS_deinit" );
-        bindFunc( cast( void** )&PHYSFS_supportedArchiveTypes, "PHYSFS_supportedArchiveTypes" );
-        bindFunc( cast( void** )&PHYSFS_freeList, "PHYSFS_freeList" );
-        bindFunc( cast( void** )&PHYSFS_getLastError, "PHYSFS_getLastError" );
-        bindFunc( cast( void** )&PHYSFS_getDirSeparator, "PHYSFS_getDirSeparator" );
-        bindFunc( cast( void** )&PHYSFS_permitSymbolicLinks, "PHYSFS_permitSymbolicLinks" );
-        bindFunc( cast( void** )&PHYSFS_getCdRomDirs, "PHYSFS_getCdRomDirs" );
-        bindFunc( cast( void** )&PHYSFS_getBaseDir, "PHYSFS_getBaseDir" );
-        bindFunc( cast( void** )&PHYSFS_getUserDir, "PHYSFS_getUserDir" );
-        bindFunc( cast( void** )&PHYSFS_getWriteDir, "PHYSFS_getWriteDir" );
-        bindFunc( cast( void** )&PHYSFS_setWriteDir, "PHYSFS_setWriteDir" );
-        bindFunc( cast( void** )&PHYSFS_addToSearchPath, "PHYSFS_addToSearchPath" );
-        bindFunc( cast( void** )&PHYSFS_removeFromSearchPath, "PHYSFS_removeFromSearchPath" );
-        bindFunc( cast( void** )&PHYSFS_getSearchPath, "PHYSFS_getSearchPath" );
-        bindFunc( cast( void** )&PHYSFS_setSaneConfig, "PHYSFS_setSaneConfig" );
-        bindFunc( cast( void** )&PHYSFS_mkdir, "PHYSFS_mkdir" );
-        bindFunc( cast( void** )&PHYSFS_delete, "PHYSFS_delete" );
-        bindFunc( cast( void** )&PHYSFS_getRealDir, "PHYSFS_getRealDir" );
-        bindFunc( cast( void** )&PHYSFS_enumerateFiles, "PHYSFS_enumerateFiles" );
-        bindFunc( cast( void** )&PHYSFS_exists, "PHYSFS_exists" );
-        bindFunc( cast( void** )&PHYSFS_isDirectory, "PHYSFS_isDirectory" );
-        bindFunc( cast( void** )&PHYSFS_isSymbolicLink, "PHYSFS_isSymbolicLink" );
-        bindFunc( cast( void** )&PHYSFS_getLastModTime, "PHYSFS_getLastModTime" );
-        bindFunc( cast( void** )&PHYSFS_openWrite, "PHYSFS_openWrite" );
-        bindFunc( cast( void** )&PHYSFS_openAppend, "PHYSFS_openAppend" );
-        bindFunc( cast( void** )&PHYSFS_openRead, "PHYSFS_openRead" );
-        bindFunc( cast( void** )&PHYSFS_close, "PHYSFS_close" );
-        bindFunc( cast( void** )&PHYSFS_read, "PHYSFS_read" );
-        bindFunc( cast( void** )&PHYSFS_write, "PHYSFS_write" );
-        bindFunc( cast( void** )&PHYSFS_eof, "PHYSFS_eof" );
-        bindFunc( cast( void** )&PHYSFS_tell, "PHYSFS_tell" );
-        bindFunc( cast( void** )&PHYSFS_seek, "PHYSFS_seek" );
-        bindFunc( cast( void** )&PHYSFS_fileLength, "PHYSFS_fileLength" );
-        bindFunc( cast( void** )&PHYSFS_setBuffer, "PHYSFS_setBuffer" );
-        bindFunc( cast( void** )&PHYSFS_flush, "PHYSFS_flush" );
-        bindFunc( cast( void** )&PHYSFS_swapSLE16, "PHYSFS_swapSLE16" );
-        bindFunc( cast( void** )&PHYSFS_swapULE16, "PHYSFS_swapULE16" );
-        bindFunc( cast( void** )&PHYSFS_swapSLE32, "PHYSFS_swapSLE32" );
-        bindFunc( cast( void** )&PHYSFS_swapULE32, "PHYSFS_swapULE32" );
-        bindFunc( cast( void** )&PHYSFS_swapSLE64, "PHYSFS_swapSLE64" );
-        bindFunc( cast( void** )&PHYSFS_swapULE64, "PHYSFS_swapULE64" );
-        bindFunc( cast( void** )&PHYSFS_swapSBE16, "PHYSFS_swapSBE16" );
-        bindFunc( cast( void** )&PHYSFS_swapUBE16, "PHYSFS_swapUBE16" );
-        bindFunc( cast( void** )&PHYSFS_swapSBE32, "PHYSFS_swapSBE32" );
-        bindFunc( cast( void** )&PHYSFS_swapUBE32, "PHYSFS_swapUBE32" );
-        bindFunc( cast( void** )&PHYSFS_swapSBE64, "PHYSFS_swapSBE64" );
-        bindFunc( cast( void** )&PHYSFS_swapUBE64, "PHYSFS_swapUBE64" );
-        bindFunc( cast( void** )&PHYSFS_readSLE16, "PHYSFS_readSLE16" );
-        bindFunc( cast( void** )&PHYSFS_readULE16, "PHYSFS_readULE16" );
-        bindFunc( cast( void** )&PHYSFS_readSLE32, "PHYSFS_readSLE32" );
-        bindFunc( cast( void** )&PHYSFS_readULE32, "PHYSFS_readULE32" );
-        bindFunc( cast( void** )&PHYSFS_readSLE64, "PHYSFS_readSLE64" );
-        bindFunc( cast( void** )&PHYSFS_readULE64, "PHYSFS_readULE64" );
-        bindFunc( cast( void** )&PHYSFS_readSBE16, "PHYSFS_readSBE16" );
-        bindFunc( cast( void** )&PHYSFS_readUBE16, "PHYSFS_readUBE16" );
-        bindFunc( cast( void** )&PHYSFS_readSBE32, "PHYSFS_readSBE32" );
-        bindFunc( cast( void** )&PHYSFS_readUBE32, "PHYSFS_readUBE32" );
-        bindFunc( cast( void** )&PHYSFS_readSBE64, "PHYSFS_readSBE64" );
-        bindFunc( cast( void** )&PHYSFS_readUBE64, "PHYSFS_readUBE64" );
-        bindFunc( cast( void** )&PHYSFS_writeSLE16, "PHYSFS_writeSLE16" );
-        bindFunc( cast( void** )&PHYSFS_writeULE16, "PHYSFS_writeULE16" );
-        bindFunc( cast( void** )&PHYSFS_writeSLE32, "PHYSFS_writeSLE32" );
-        bindFunc( cast( void** )&PHYSFS_writeULE32, "PHYSFS_writeULE32" );
-        bindFunc( cast( void** )&PHYSFS_writeSLE64, "PHYSFS_writeSLE64" );
-        bindFunc( cast( void** )&PHYSFS_writeULE64, "PHYSFS_writeULE64" );
-        bindFunc( cast( void** )&PHYSFS_writeSBE16, "PHYSFS_writeSBE16" );
-        bindFunc( cast( void** )&PHYSFS_writeUBE16, "PHYSFS_writeUBE16" );
-        bindFunc( cast( void** )&PHYSFS_writeSBE32, "PHYSFS_writeSBE32" );
-        bindFunc( cast( void** )&PHYSFS_writeUBE32, "PHYSFS_writeUBE32" );
-        bindFunc( cast( void** )&PHYSFS_writeSBE64, "PHYSFS_writeSBE64" );
-        bindFunc( cast( void** )&PHYSFS_writeUBE64, "PHYSFS_writeUBE64" );
-        bindFunc( cast( void** )&PHYSFS_isInit, "PHYSFS_isInit" );
-        bindFunc( cast( void** )&PHYSFS_symbolicLinksPermitted, "PHYSFS_symbolicLinksPermitted" );
-        bindFunc( cast( void** )&PHYSFS_setAllocator, "PHYSFS_setAllocator" );
-        bindFunc( cast( void** )&PHYSFS_mount, "PHYSFS_mount" );
-        bindFunc( cast( void** )&PHYSFS_getMountPoint, "PHYSFS_getMountPoint" );
-        bindFunc( cast( void** )&PHYSFS_getCdRomDirsCallback, "PHYSFS_getCdRomDirsCallback" );
-        bindFunc( cast( void** )&PHYSFS_getSearchPathCallback, "PHYSFS_getSearchPathCallback" );
-        bindFunc( cast( void** )&PHYSFS_enumerateFilesCallback, "PHYSFS_enumerateFilesCallback" );
-        bindFunc( cast( void** )&PHYSFS_utf8FromUcs4, "PHYSFS_utf8FromUcs4" );
-        bindFunc( cast( void** )&PHYSFS_utf8ToUcs4, "PHYSFS_utf8ToUcs4" );
-        bindFunc( cast( void** )&PHYSFS_utf8FromUcs2, "PHYSFS_utf8FromUcs2" );
-        bindFunc( cast( void** )&PHYSFS_utf8ToUcs2, "PHYSFS_utf8ToUcs2" );
-        bindFunc( cast( void** )&PHYSFS_utf8FromLatin1, "PHYSFS_utf8FromLatin1" );
+        bindFunc(cast(void**)&PHYSFS_getLinkedVersion, "PHYSFS_getLinkedVersion");
+        bindFunc(cast(void**)&PHYSFS_init, "PHYSFS_init");
+        bindFunc(cast(void**)&PHYSFS_deinit, "PHYSFS_deinit");
+        bindFunc(cast(void**)&PHYSFS_supportedArchiveTypes, "PHYSFS_supportedArchiveTypes");
+        bindFunc(cast(void**)&PHYSFS_freeList, "PHYSFS_freeList");
+        bindFunc(cast(void**)&PHYSFS_getLastError, "PHYSFS_getLastError");
+        bindFunc(cast(void**)&PHYSFS_getDirSeparator, "PHYSFS_getDirSeparator");
+        bindFunc(cast(void**)&PHYSFS_permitSymbolicLinks, "PHYSFS_permitSymbolicLinks");
+        bindFunc(cast(void**)&PHYSFS_getCdRomDirs, "PHYSFS_getCdRomDirs");
+        bindFunc(cast(void**)&PHYSFS_getBaseDir, "PHYSFS_getBaseDir");
+        bindFunc(cast(void**)&PHYSFS_getUserDir, "PHYSFS_getUserDir");
+        bindFunc(cast(void**)&PHYSFS_getWriteDir, "PHYSFS_getWriteDir");
+        bindFunc(cast(void**)&PHYSFS_setWriteDir, "PHYSFS_setWriteDir");
+        bindFunc(cast(void**)&PHYSFS_addToSearchPath, "PHYSFS_addToSearchPath");
+        bindFunc(cast(void**)&PHYSFS_removeFromSearchPath, "PHYSFS_removeFromSearchPath");
+        bindFunc(cast(void**)&PHYSFS_getSearchPath, "PHYSFS_getSearchPath");
+        bindFunc(cast(void**)&PHYSFS_setSaneConfig, "PHYSFS_setSaneConfig");
+        bindFunc(cast(void**)&PHYSFS_mkdir, "PHYSFS_mkdir");
+        bindFunc(cast(void**)&PHYSFS_delete, "PHYSFS_delete");
+        bindFunc(cast(void**)&PHYSFS_getRealDir, "PHYSFS_getRealDir");
+        bindFunc(cast(void**)&PHYSFS_enumerateFiles, "PHYSFS_enumerateFiles");
+        bindFunc(cast(void**)&PHYSFS_exists, "PHYSFS_exists");
+        bindFunc(cast(void**)&PHYSFS_isDirectory, "PHYSFS_isDirectory");
+        bindFunc(cast(void**)&PHYSFS_isSymbolicLink, "PHYSFS_isSymbolicLink");
+        bindFunc(cast(void**)&PHYSFS_getLastModTime, "PHYSFS_getLastModTime");
+        bindFunc(cast(void**)&PHYSFS_openWrite, "PHYSFS_openWrite");
+        bindFunc(cast(void**)&PHYSFS_openAppend, "PHYSFS_openAppend");
+        bindFunc(cast(void**)&PHYSFS_openRead, "PHYSFS_openRead");
+        bindFunc(cast(void**)&PHYSFS_close, "PHYSFS_close");
+        bindFunc(cast(void**)&PHYSFS_read, "PHYSFS_read");
+        bindFunc(cast(void**)&PHYSFS_write, "PHYSFS_write");
+        bindFunc(cast(void**)&PHYSFS_eof, "PHYSFS_eof");
+        bindFunc(cast(void**)&PHYSFS_tell, "PHYSFS_tell");
+        bindFunc(cast(void**)&PHYSFS_seek, "PHYSFS_seek");
+        bindFunc(cast(void**)&PHYSFS_fileLength, "PHYSFS_fileLength");
+        bindFunc(cast(void**)&PHYSFS_setBuffer, "PHYSFS_setBuffer");
+        bindFunc(cast(void**)&PHYSFS_flush, "PHYSFS_flush");
+        bindFunc(cast(void**)&PHYSFS_swapSLE16, "PHYSFS_swapSLE16");
+        bindFunc(cast(void**)&PHYSFS_swapULE16, "PHYSFS_swapULE16");
+        bindFunc(cast(void**)&PHYSFS_swapSLE32, "PHYSFS_swapSLE32");
+        bindFunc(cast(void**)&PHYSFS_swapULE32, "PHYSFS_swapULE32");
+        bindFunc(cast(void**)&PHYSFS_swapSLE64, "PHYSFS_swapSLE64");
+        bindFunc(cast(void**)&PHYSFS_swapULE64, "PHYSFS_swapULE64");
+        bindFunc(cast(void**)&PHYSFS_swapSBE16, "PHYSFS_swapSBE16");
+        bindFunc(cast(void**)&PHYSFS_swapUBE16, "PHYSFS_swapUBE16");
+        bindFunc(cast(void**)&PHYSFS_swapSBE32, "PHYSFS_swapSBE32");
+        bindFunc(cast(void**)&PHYSFS_swapUBE32, "PHYSFS_swapUBE32");
+        bindFunc(cast(void**)&PHYSFS_swapSBE64, "PHYSFS_swapSBE64");
+        bindFunc(cast(void**)&PHYSFS_swapUBE64, "PHYSFS_swapUBE64");
+        bindFunc(cast(void**)&PHYSFS_readSLE16, "PHYSFS_readSLE16");
+        bindFunc(cast(void**)&PHYSFS_readULE16, "PHYSFS_readULE16");
+        bindFunc(cast(void**)&PHYSFS_readSLE32, "PHYSFS_readSLE32");
+        bindFunc(cast(void**)&PHYSFS_readULE32, "PHYSFS_readULE32");
+        bindFunc(cast(void**)&PHYSFS_readSLE64, "PHYSFS_readSLE64");
+        bindFunc(cast(void**)&PHYSFS_readULE64, "PHYSFS_readULE64");
+        bindFunc(cast(void**)&PHYSFS_readSBE16, "PHYSFS_readSBE16");
+        bindFunc(cast(void**)&PHYSFS_readUBE16, "PHYSFS_readUBE16");
+        bindFunc(cast(void**)&PHYSFS_readSBE32, "PHYSFS_readSBE32");
+        bindFunc(cast(void**)&PHYSFS_readUBE32, "PHYSFS_readUBE32");
+        bindFunc(cast(void**)&PHYSFS_readSBE64, "PHYSFS_readSBE64");
+        bindFunc(cast(void**)&PHYSFS_readUBE64, "PHYSFS_readUBE64");
+        bindFunc(cast(void**)&PHYSFS_writeSLE16, "PHYSFS_writeSLE16");
+        bindFunc(cast(void**)&PHYSFS_writeULE16, "PHYSFS_writeULE16");
+        bindFunc(cast(void**)&PHYSFS_writeSLE32, "PHYSFS_writeSLE32");
+        bindFunc(cast(void**)&PHYSFS_writeULE32, "PHYSFS_writeULE32");
+        bindFunc(cast(void**)&PHYSFS_writeSLE64, "PHYSFS_writeSLE64");
+        bindFunc(cast(void**)&PHYSFS_writeULE64, "PHYSFS_writeULE64");
+        bindFunc(cast(void**)&PHYSFS_writeSBE16, "PHYSFS_writeSBE16");
+        bindFunc(cast(void**)&PHYSFS_writeUBE16, "PHYSFS_writeUBE16");
+        bindFunc(cast(void**)&PHYSFS_writeSBE32, "PHYSFS_writeSBE32");
+        bindFunc(cast(void**)&PHYSFS_writeUBE32, "PHYSFS_writeUBE32");
+        bindFunc(cast(void**)&PHYSFS_writeSBE64, "PHYSFS_writeSBE64");
+        bindFunc(cast(void**)&PHYSFS_writeUBE64, "PHYSFS_writeUBE64");
+        bindFunc(cast(void**)&PHYSFS_isInit, "PHYSFS_isInit");
+        bindFunc(cast(void**)&PHYSFS_symbolicLinksPermitted, "PHYSFS_symbolicLinksPermitted");
+        bindFunc(cast(void**)&PHYSFS_setAllocator, "PHYSFS_setAllocator");
+        bindFunc(cast(void**)&PHYSFS_mount, "PHYSFS_mount");
+        bindFunc(cast(void**)&PHYSFS_getMountPoint, "PHYSFS_getMountPoint");
+        bindFunc(cast(void**)&PHYSFS_getCdRomDirsCallback, "PHYSFS_getCdRomDirsCallback");
+        bindFunc(cast(void**)&PHYSFS_getSearchPathCallback, "PHYSFS_getSearchPathCallback");
+        bindFunc(cast(void**)&PHYSFS_enumerateFilesCallback, "PHYSFS_enumerateFilesCallback");
+        bindFunc(cast(void**)&PHYSFS_utf8FromUcs4, "PHYSFS_utf8FromUcs4");
+        bindFunc(cast(void**)&PHYSFS_utf8ToUcs4, "PHYSFS_utf8ToUcs4");
+        bindFunc(cast(void**)&PHYSFS_utf8FromUcs2, "PHYSFS_utf8FromUcs2");
+        bindFunc(cast(void**)&PHYSFS_utf8ToUcs2, "PHYSFS_utf8ToUcs2");
+        bindFunc(cast(void**)&PHYSFS_utf8FromLatin1, "PHYSFS_utf8FromLatin1");
+
+        bindFunc(cast(void**)&PHYSFS_unmount, "PHYSFS_unmount");
+        bindFunc(cast(void**)&PHYSFS_getAllocator, "PHYSFS_getAllocator");
+        bindFunc(cast(void**)&PHYSFS_stat, "PHYSFS_stat");
+        bindFunc(cast(void**)&PHYSFS_utf8FromUtf16, "PHYSFS_utf8FromUtf16");
+        bindFunc(cast(void**)&PHYSFS_utf8ToUtf16, "PHYSFS_utf8ToUtf16");
+        bindFunc(cast(void**)&PHYSFS_readBytes, "PHYSFS_readBytes");
+        bindFunc(cast(void**)&PHYSFS_writeBytes, "PHYSFS_writeBytes");
+        bindFunc(cast(void**)&PHYSFS_mountIo, "PHYSFS_mountIo");
+        bindFunc(cast(void**)&PHYSFS_mountMemory, "PHYSFS_mountMemory");
+        bindFunc(cast(void**)&PHYSFS_mountHandle, "PHYSFS_mountHandle");
+        bindFunc(cast(void**)&PHYSFS_getLastErrorCode, "PHYSFS_getLastErrorCode");
+        bindFunc(cast(void**)&PHYSFS_getErrorByCode, "PHYSFS_getErrorByCode");
+        bindFunc(cast(void**)&PHYSFS_setErrorCode, "PHYSFS_setErrorCode");
+        bindFunc(cast(void**)&PHYSFS_getPrefDir, "PHYSFS_getPrefDir");
+        bindFunc(cast(void**)&PHYSFS_registerArchiver, "PHYSFS_registerArchiver");
+        bindFunc(cast(void**)&PHYSFS_deregisterArchiver, "PHYSFS_deregisterArchiver");
     }
 }
 
