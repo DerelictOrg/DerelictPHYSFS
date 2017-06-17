@@ -1,0 +1,10 @@
+name "derelict-physfs"
+description "A dynamic binding to the PhysicsFS library.."
+homepage "https://github.com/DerelictOrg/DerelictPHYSFS"
+license "Boost"
+authors "Mike Parker"
+targetType "library"
+targetPath "lib"
+targetName "DerelictPHYSFS"
+
+dependency "derelict-util" version="~>3.0.0-beta.1"
