@@ -25,12 +25,6 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 */
-module derelict.physfs.physfs;
+module derelict.physfs;
 
-version(Derelict_Static) version = DerelictPHYSFS_Static;
-
-public:
-    version(DerelictPHYSFS_Static)
-        import derelict.physfs.statfun;
-    else
-        import derelict.physfs.dynload;
+public import derelict.physfs.physfs;
