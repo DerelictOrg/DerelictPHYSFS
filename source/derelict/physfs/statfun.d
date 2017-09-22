@@ -32,7 +32,7 @@ version(DerelictPHYSFS_Static):
 
 public import derelict.physfs.types;
 
-extern(System) @nogc nothrow {
+extern(C) @nogc nothrow {
     // 2.0 API
 	void PHYSFS_getLinkedVersion(PHYSFS_Version*);
 	int PHYSFS_init(const(char)*);
